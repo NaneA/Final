@@ -1,0 +1,184 @@
+<html>
+<style>
+  * {
+    text-align: center;
+  }
+</style>
+<canvas id="lab" width="1000" height="600"> </canvas>
+<script>
+    const canvas = document.getElementById('lab');
+    const lab = canvas.getContext('2d');
+    const back = new Image();
+    back.src = "https://media.istockphoto.com/photos/star-field-at-night-picture-id501655522?k=6&m=501655522&s=612x612&w=0&h=5haf2lvGVmy5O6BosnMv6q6CGFGT6SXiqJxhyJ6P7to=";
+    const char = new Image();
+    char.src = "https://i.stack.imgur.com/rsH6n.png";
+    let countMin = 0;
+    let gameOver = false;
+    let square = { //player
+        x: canvas.width / 2 - 20,
+        y: canvas.height - 40,
+        width: 40,
+        height: 40,
+        deltay: 10,
+        deltax: 10,
+    };
+    let rects = [];
+    let stars = [];
+    let bullets = [];
+    const RectsIntersection = function(rect1X, rect1Y, rect1W, rect1H, rect2X, rect2Y, rect2W, rect2H) {
+        return rect1X < rect2X + rect2W && rect1X + rect1W > rect2X && rect1Y < rect2Y + rect2H && rect1H + rect1Y > rect2Y;
+    };
+    const addPlane = function(arr, color) {
+        arr.push({
+            x: Math.random() * (canvas.width - 50),
+            y: 0,
+            width: Math.random() * 60 + 70,
+            height: 10,
+            color: color,
+            opacity: 1
+        })
+    };
+    const addStars = function(arr, width) {
+        arr.push({
+            x: Math.random() * canvas.width,
+            y: 0,
+            width: 2,
+            height: 2
+        })
+    };
+    addPlane(rects);
+    const leftKey = 37; //key code
+    const upKey = 38;
+    const rightKey = 39;
+    const downKey = 40;
+    const spaceKey = 32; //for shooting
+    let keysObj = {};
+    const restart = function() {
+        gameOver = false;
+        rects = [];
+        countMin = 0;
+        loop();
+        keysObj = {};
+        square = {
+            x: canvas.width / 2 - 20,
+            y: canvas.height - 40,
+            width: 40,
+            height: 40,
+            deltay: 10,
+            deltax: 10
+        }
+    }
+    const draw = function() {
+        //lab.clearRect(0, 0, canvas.width, canvas.height)
+        lab.drawImage(back, 0, 0, canvas.width, canvas.height);
+        lab.fillStyle = "orange";
+        lab.drawImage(char, square.x, square.y, 40, 40); //for hero
+        for (let i = 0; i < stars.length; i++) {
+            lab.fillStyle = "white";
+            lab.fillRect(stars[i].x, stars[i].y, 2, 2);
+        }
+        for (let i = 0; i < rects.length; i++) {
+            lab.fillStyle = rects[i].color;
+            lab.globalAlpha = rects[i].opacity;
+            lab.fillRect(rects[i].x, rects[i].y, rects[i].width, rects[i].height);
+            lab.globalAlpha = 1;
+        }
+        for (let i = 0; i < bullets.length; i++) {
+            lab.fillStyle = "silver";
+            lab.fillRect(bullets[i].x, bullets[i].y, 2, 2);
+        }
+    }
+    const changes = function() {
+        for (let i = 0; i < bullets.length; i++) {
+            bullets[i].y -= 3;
+        }
+        for (let i = bullets.length - 1; i > 0; i--) {
+            if (bullets[i].y < 0) {
+                bullets.splice(i, 1);
+            }
+        }
+        for (let i = 0; i < stars.length; i++) {
+            stars[i].y += 2;
+        }
+        for (let i = stars.length - 1; i > 0; i--) {
+            if (stars[i].y > canvas.height) {
+                stars.splice(i, 1);
+            }
+        }
+        for (let i = rects.length - 1; i >= 0; i--) {
+            rects[i].y++;
+            if (rects[i].y > canvas.height || rects[i].opacity < 0) {
+                rects.splice(i, 1);
+            }
+        }
+        for (let i = 0; i < rects.length; i++) {
+            for (let j = bullets.length - 1; j >= 0; j--) {
+                if ((rects[i].color === "red" || rects[i].color === "blue") && RectsIntersection(rects[i].x, rects[i].y, rects[i].width, rects[i].height, bullets[j].x, bullets[j].y, bullets[j].width, bullets[j].height)) {
+                    rects[i].opacity -= 0.1;
+                    bullets.splice(j, 1);
+                }
+            }
+        }
+        countMin++;
+        if (countMin % 2 === 0) {
+            addStars(stars);
+        }
+        if (countMin > 50) {
+            addPlane(rects, "red");
+            addPlane(rects, "green");
+            addPlane(rects, "blue");
+            countMin = 0;
+        }
+        if (keysObj[spaceKey] && countMin % 5 === 0) {
+            bullets.push({
+                x: square.x + square.width / 2,
+                y: square.y,
+                width: 1,
+                height: 1
+            })
+        }
+        if (keysObj[upKey] && square.y > 0 && rects[0].y > 100) {
+            square.y -= square.deltay;
+        }
+        if (keysObj[downKey] && square.y + 40 < canvas.height) {
+            square.y += square.deltay;
+        }
+        if (keysObj[leftKey] && square.x > 0) {
+            square.x -= square.deltax
+        }
+        if (keysObj[rightKey] && square.x + 40 < canvas.width) {
+            square.x += square.deltax;
+        }
+        for (let i = 0; i < rects.length; i++) {
+            if (RectsIntersection(rects[i].x, rects[i].y, rects[i].width, rects[i].height, square.x, square.y, square.width, square.height)) {
+                gameOver = true;
+                alert("You lost, try again");
+            }
+        }
+        if(square.y === 0) {
+            gameOver = true;
+            alert("You win :'(");
+        }
+    }
+    document.addEventListener('keydown', function(event) {
+        keysObj[event.keyCode] = true;
+    }, false);
+    document.addEventListener('keyup', function(event) {
+        keysObj[event.keyCode] = false;
+    }, false);
+    canvas.addEventListener('click', function(e) {
+        if (gameOver) {
+            restart();
+        }
+    })
+    const loop = function() {
+        changes();
+        draw();
+        if (!gameOver) {
+            requestAnimationFrame(loop);
+        }
+    }
+    loop();
+</script>
+
+</html>
